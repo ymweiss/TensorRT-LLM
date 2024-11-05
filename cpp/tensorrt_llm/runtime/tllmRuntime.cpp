@@ -35,6 +35,12 @@
 #include <optional>
 #include <string>
 #include <type_traits>
+#if !defined(_WIN32)
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#endif
 #include <utility>
 #include <vector>
 
@@ -205,6 +211,13 @@ TllmRuntime::TllmRuntime(RawEngine const& rawEngine, nvinfer1::ILogger* logger, 
             auto reader = GDSStreamReader(rawEngine.getPath());
             mEngine.reset(mRuntime->deserializeCudaEngine(reader));
         }
+#if !defined(_WIN32)
+        else if (rawEngine.useMMap())
+        {
+            MMapEngine mmapEngine(rawEngine.getPath());
+            mEngine.reset(mRuntime->deserializeCudaEngine(mmapEngine.getData(), mmapEngine.getSize()));
+        }
+#endif
         else
         {
             auto reader = StreamReader(rawEngine.getPath());
@@ -829,3 +842,83 @@ void TllmRuntime::loadManagedWeights(RawEngine const& rawEngine, int localRank)
     setStaticInputTensors(mManagedWeightsMap);
     TLLM_LOG_TRACE("%s stop", __PRETTY_FUNCTION__);
 }
+
+#if defined(_WIN32)
+MMapEngine::MMapEngine(std::filesystem::path const& enginePath)
+    : mData(nullptr)
+    , mBytes(0)
+{
+    TLLM_CHECK_WITH_INFO(false, "Memory-mapped engine loading is not supported on Windows.");
+}
+
+MMapEngine::MMapEngine()
+    : mData(nullptr)
+    , mBytes(0)
+{
+}
+
+MMapEngine::~MMapEngine() {}
+
+void const* MMapEngine::getData() const
+{
+    return nullptr;
+}
+
+const size_t MMapEngine::getSize() const
+{
+    return 0;
+}
+#else
+MMapEngine::MMapEngine(std::filesystem::path const& enginePath)
+    : mData(nullptr)
+    , mBytes(0)
+{
+    int fd = open(enginePath.c_str(), O_RDONLY);
+    if (fd <= 0)
+    {
+        TLLM_CHECK_WITH_INFO(false, std::string("Error opening engine file: " + enginePath.string()));
+        return;
+    }
+    struct stat status;
+    if (fstat(fd, &status) != 0)
+    {
+        TLLM_CHECK_WITH_INFO(false, std::string("fstat failed, " + enginePath.string()));
+        close(fd);
+        return;
+    }
+    mBytes = status.st_size;
+    mData = mmap(nullptr, mBytes, PROT_READ, MAP_SHARED, fd, 0);
+    if (mData == MAP_FAILED)
+    {
+        mData = nullptr;
+        TLLM_CHECK_WITH_INFO(false, std::string("mmap failed, " + enginePath.string()));
+        close(fd);
+        return;
+    }
+    close(fd);
+}
+
+MMapEngine::MMapEngine()
+    : mData(nullptr)
+    , mBytes(0)
+{
+}
+
+MMapEngine::~MMapEngine()
+{
+    if (mData != nullptr && mData != MAP_FAILED)
+    {
+        munmap(const_cast<void*>(mData), mBytes);
+    }
+}
+
+void const* MMapEngine::getData() const
+{
+    return mData;
+}
+
+const size_t MMapEngine::getSize() const
+{
+    return mBytes;
+}
+#endif // _WIN32 / POSIX mmap engine load

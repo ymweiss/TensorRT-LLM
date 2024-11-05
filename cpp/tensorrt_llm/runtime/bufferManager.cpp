@@ -268,7 +268,14 @@ std::size_t BufferManager::memoryPoolFree() const
         return 0;
     }
     mStream->synchronize();
-    return mPool->memoryPoolReserved() - mPool->memoryPoolUsed();
+    auto const reserved = mPool->memoryPoolReserved();
+    auto const used = mPool->memoryPoolUsed();
+    // On some platforms (e.g. Jetson), the driver may report used > reserved briefly.
+    if (reserved >= used)
+    {
+        return reserved - used;
+    }
+    return 0;
 }
 
 void BufferManager::memoryPoolTrimTo(std::size_t size)

@@ -524,7 +524,13 @@ def main(*,
            for submodule in submodules):
         build_run('git submodule update --init --recursive')
     on_windows = platform.system() == "Windows"
-    requirements_filename = "requirements-dev-windows.txt" if on_windows else "requirements-dev.txt"
+    on_jetson_l4t = "tegra" in platform.release() and platform.machine() == "aarch64"
+    if on_windows:
+        requirements_filename = "requirements-dev-windows.txt"
+    elif on_jetson_l4t:
+        requirements_filename = "requirements-dev-jetson.txt"
+    else:
+        requirements_filename = "requirements-dev.txt"
 
     # Setup venv and install requirements
     venv_python, venv_conan = setup_venv(project_dir,
@@ -565,6 +571,10 @@ def main(*,
 
     if generator:
         cmake_generator = "-G" + generator
+
+    if on_jetson_l4t:
+        # Jetson Orin does not support multi-device currently.
+        extra_cmake_vars.extend(["ENABLE_MULTI_DEVICE=0"])
 
     if job_count is None:
         job_count = get_available_cpu_count()

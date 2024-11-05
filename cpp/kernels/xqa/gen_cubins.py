@@ -34,7 +34,8 @@ CompileArchMacrosAndFile = namedtuple('CompileArchMacrosAndFile',
                                       'arch macro_list input_file_name')
 
 build_func_name_prefix = 'xqa_kernel'
-arch_options = [80, 86, 90]
+# Jetson Orin is sm_87; use the same NVCC arch flags as other Ampere-class SKUs (no CUDA 13-only toolchain required).
+arch_options = [80, 86, 87, 90]
 config_list = [
     # for llama v2 70b
     [

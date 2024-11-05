@@ -240,4 +240,18 @@ private:
     // For Variable-Beam-Width-Search
     std::vector<SizeType32> mCurrentBeamWidths;
 };
+
+class MMapEngine
+{
+public:
+    MMapEngine(std::filesystem::path const& enginePath);
+    MMapEngine();
+    ~MMapEngine();
+    void const* getData() const;
+    const size_t getSize() const;
+
+private:
+    void* mData;
+    size_t mBytes;
+};
 } // namespace tensorrt_llm::runtime

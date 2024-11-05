@@ -84,8 +84,8 @@ static inline void set_alpha(uint32_t& alpha, float norm, Data_type dtype)
 FusedMHARunnerV2::FusedMHARunnerV2(MHARunnerFixedParams fixedParams)
     : mFixedParams(fixedParams)
 {
-    TLLM_CHECK_WITH_INFO((mSM == kSM_80 || mSM == kSM_86 || mSM == kSM_89 || mSM == kSM_90 || mSM == kSM_100
-                             || mSM == kSM_103 || mSM == kSM_120 || mSM == kSM_121),
+    TLLM_CHECK_WITH_INFO((mSM == kSM_80 || mSM == kSM_86 || mSM == kSM_87 || mSM == kSM_89 || mSM == kSM_90
+                             || mSM == kSM_100 || mSM == kSM_103 || mSM == kSM_120 || mSM == kSM_121),
         "Unsupported architecture");
     TLLM_CHECK_WITH_INFO((mFixedParams.dataType == DATA_TYPE_FP16 || mFixedParams.dataType == DATA_TYPE_BF16
                              || mFixedParams.dataType == DATA_TYPE_E4M3),
@@ -350,7 +350,7 @@ void FusedMHARunnerV2::setupLaunchParams(MHARunnerParams runnerParams)
 
     bool const isSm70 = (mSM == kSM_70);
     bool const isSm90 = (mSM == kSM_90);
-    bool const isSm8x = (mSM == kSM_86 || mSM == kSM_89);
+    bool const isSm8x = (mSM == kSM_86 || mSM == kSM_87 || mSM == kSM_89);
     bool const isSm80 = (mSM == kSM_80);
     bool const isSm89 = (mSM == kSM_89);
     bool const isSm100f = (mSM == kSM_100 || mSM == kSM_103);

@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import platform
 import time
 from functools import partial
 from typing import Literal, Optional, Tuple, Union
@@ -120,12 +121,29 @@ class PyNVMLContext:
             pynvml.nvmlShutdown()
 
 
+on_jetson_l4t = "tegra" in platform.release() and platform.machine() == "aarch64"
 if pynvml is not None:
     with PyNVMLContext():
-        _device_get_memory_info_fn = partial(
-            pynvml.nvmlDeviceGetMemoryInfo,
-            version=pynvml.nvmlMemory_v2,
-        )
+        if on_jetson_l4t:
+            driver_version = pynvml.nvmlSystemGetDriverVersion()
+            if pynvml.__version__ < "11.5.0" or driver_version < "526":
+                logger.warning(
+                    "Found pynvml==%s and cuda driver version %s. Please use pynvml>=11.5.0 and "
+                    "cuda driver>=526 to get accurate memory usage.",
+                    pynvml.__version__,
+                    driver_version,
+                )
+                _device_get_memory_info_fn = pynvml.nvmlDeviceGetMemoryInfo
+            else:
+                _device_get_memory_info_fn = partial(
+                    pynvml.nvmlDeviceGetMemoryInfo,
+                    version=pynvml.nvmlMemory_v2,
+                )
+        else:
+            _device_get_memory_info_fn = partial(
+                pynvml.nvmlDeviceGetMemoryInfo,
+                version=pynvml.nvmlMemory_v2,
+            )
 
 
 def host_memory_info(pid: Optional[int] = None) -> Tuple[int, int, int]:

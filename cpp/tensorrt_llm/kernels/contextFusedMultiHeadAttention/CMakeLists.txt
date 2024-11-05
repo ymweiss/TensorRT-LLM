@@ -23,7 +23,7 @@ add_library(context_attention_src OBJECT)
 
 filter_source_cuda_architectures(
   SOURCE_LIST SRC_CPP
-  ARCHS 80 86 89 90 100 120
+  ARCHS 80 86 87 89 90 100 120
   TARGET context_attention_src
   IMPLICIT_FAMILY)
 
@@ -34,7 +34,7 @@ set_target_properties(
   context_attention_src PROPERTIES POSITION_INDEPENDENT_CODE ON
                                    CUDA_RESOLVE_DEVICE_SYMBOLS ON)
 
-foreach(arch IN ITEMS 80 86 89 90 100 120)
+foreach(arch IN ITEMS 80 86 87 89 90 100 120)
   set(ARCH_ENABLED FALSE)
   set(TARGET_ARCH "")
   if(${arch} GREATER_EQUAL ${CMAKE_CUDA_MIN_ARCHITECTURE_HAS_FAMILY})
