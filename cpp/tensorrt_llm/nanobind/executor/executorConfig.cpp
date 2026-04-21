@@ -494,7 +494,8 @@ void initConfigBindings(nb::module_& m)
             c.getExtendedRuntimePerfKnobConfig(), c.getDebugConfig(), c.getRecvPollPeriodMs(),
             c.getMaxSeqIdleMicroseconds(), c.getSpecDecConfig(), c.getGuidedDecodingConfig(),
             c.getAdditionalModelOutputs(), c.getCacheTransceiverConfig(), c.getGatherGenerationLogits(),
-            c.getPromptTableOffloading(), c.getEnableTrtOverlap(), c.getFailFastOnAttentionWindowTooLarge());
+            c.getPromptTableOffloading(), c.getEnableTrtOverlap(), c.getFailFastOnAttentionWindowTooLarge(),
+            c.getUseEngineMmap());
         auto pickle_tuple = nb::make_tuple(cpp_states, nb::getattr(self, "__dict__"));
         return pickle_tuple;
     };
@@ -507,10 +508,12 @@ void initConfigBindings(nb::module_& m)
         }
 
         auto cpp_states = nb::cast<nb::tuple>(state[0]);
-        if (cpp_states.size() != 29)
+        if (cpp_states.size() != 29 && cpp_states.size() != 30)
         {
             throw std::runtime_error("Invalid cpp_states!");
         }
+
+        bool const useEngineMmap = (cpp_states.size() == 30) ? nb::cast<bool>(cpp_states[29]) : false;
 
         // Restore C++ data
         tle::ExecutorConfig* cpp_self = nb::inst_ptr<tle::ExecutorConfig>(self);
@@ -543,7 +546,8 @@ void initConfigBindings(nb::module_& m)
             nb::cast<bool>(cpp_states[25]),                                                   // GatherGenerationLogits
             nb::cast<bool>(cpp_states[26]),                                                   // PromptTableOffloading
             nb::cast<bool>(cpp_states[27]),                                                   // EnableTrtOverlap
-            nb::cast<bool>(cpp_states[28]) // FailFastOnAttentionWindowTooLarge
+            nb::cast<bool>(cpp_states[28]),                                                   // FailFastOnAttentionWindowTooLarge
+            useEngineMmap                                                                      // UseEngineMmap
         );
 
         // Restore Python data
@@ -583,7 +587,8 @@ void initConfigBindings(nb::module_& m)
                  bool,                                                   // GatherGenerationLogits
                  bool,                                                   // PromptTableOffloading
                  bool,                                                   // EnableTrtOverlap
-                 bool                                                    // FailFastOnAttentionWindowTooLarge
+                 bool,                                                   // FailFastOnAttentionWindowTooLarge
+                 bool                                                    // UseEngineMmap
                  >(),
             nb::arg("max_beam_width") = 1, nb::arg("scheduler_config") = tle::SchedulerConfig(),
             nb::arg("kv_cache_config") = tle::KvCacheConfig(), nb::arg("enable_chunked_context") = false,
@@ -601,7 +606,8 @@ void initConfigBindings(nb::module_& m)
             nb::arg("spec_dec_config") = nb::none(), nb::arg("guided_decoding_config") = nb::none(),
             nb::arg("additional_model_outputs") = nb::none(), nb::arg("cache_transceiver_config") = nb::none(),
             nb::arg("gather_generation_logits") = false, nb::arg("mm_embedding_offloading") = false,
-            nb::arg("enable_trt_overlap") = false, nb::arg("fail_fast_on_attention_window_too_large") = false)
+            nb::arg("enable_trt_overlap") = false, nb::arg("fail_fast_on_attention_window_too_large") = false,
+            nb::arg("use_engine_mmap") = false)
         .def_prop_rw("max_beam_width", &tle::ExecutorConfig::getMaxBeamWidth, &tle::ExecutorConfig::setMaxBeamWidth)
         .def_prop_rw("max_batch_size", &tle::ExecutorConfig::getMaxBatchSize, &tle::ExecutorConfig::setMaxBatchSize)
         .def_prop_rw("max_num_tokens", &tle::ExecutorConfig::getMaxNumTokens, &tle::ExecutorConfig::setMaxNumTokens)
@@ -654,6 +660,7 @@ void initConfigBindings(nb::module_& m)
         .def_prop_rw("fail_fast_on_attention_window_too_large",
             &tle::ExecutorConfig::getFailFastOnAttentionWindowTooLarge,
             &tle::ExecutorConfig::setFailFastOnAttentionWindowTooLarge)
+        .def_prop_rw("use_engine_mmap", &tle::ExecutorConfig::getUseEngineMmap, &tle::ExecutorConfig::setUseEngineMmap)
         .def("__getstate__", executorConfigGetState)
         .def("__setstate__", executorConfigSetState);
 }

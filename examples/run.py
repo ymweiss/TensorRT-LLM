@@ -113,6 +113,12 @@ def parse_arguments(args=None):
         help=
         'Exit with runtime error when attention window is too large to fit even a single sequence in the KV cache.'
     )
+    parser.add_argument(
+        '--use_mmap',
+        default=False,
+        action='store_true',
+        help='Memory-map engine files on load (Linux) to reduce CPU memory usage (recommended on Jetson).',
+    )
     parser = add_common_args(parser)
 
     return parser.parse_args(args=args)
@@ -511,6 +517,7 @@ def main(args):
                 gather_generation_logits=args.output_generation_logits,
                 use_variable_beam_width_search=(args.beam_width_array
                                                 is not None),
+                use_mmap=args.use_mmap,
             )
         runner = runner_cls.from_dir(**runner_kwargs)
 

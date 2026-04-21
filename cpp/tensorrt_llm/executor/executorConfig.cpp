@@ -34,7 +34,7 @@ ExecutorConfig::ExecutorConfig(SizeType32 maxBeamWidth, SchedulerConfig schedule
     std::optional<SpeculativeDecodingConfig> specDecConfig, std::optional<GuidedDecodingConfig> guidedDecodingConfig,
     std::optional<std::vector<AdditionalModelOutput>> additionalModelOutputs,
     std::optional<CacheTransceiverConfig> cacheTransceiverConfig, bool gatherGenerationLogits,
-    bool promptTableOffloading, bool enableTrtOverlap, bool failFastOnAttentionWindowTooLarge)
+    bool promptTableOffloading, bool enableTrtOverlap, bool failFastOnAttentionWindowTooLarge, bool useEngineMmap)
     : mMaxBeamWidth(maxBeamWidth)
     , mSchedulerConfig(std::move(schedulerConfig))
     , mKvCacheConfig(std::move(kvCacheConfig))
@@ -64,6 +64,7 @@ ExecutorConfig::ExecutorConfig(SizeType32 maxBeamWidth, SchedulerConfig schedule
     , mPromptTableOffloading(promptTableOffloading)
     , mEnableTrtOverlap(enableTrtOverlap)
     , mFailFastOnAttentionWindowTooLarge(failFastOnAttentionWindowTooLarge)
+    , mUseEngineMmap(useEngineMmap)
 {
     TLLM_CHECK(iterStatsMaxIterations >= 0);
     TLLM_CHECK(requestStatsMaxIterations >= 0);
@@ -228,6 +229,11 @@ bool ExecutorConfig::getFailFastOnAttentionWindowTooLarge() const
     return mFailFastOnAttentionWindowTooLarge;
 }
 
+bool ExecutorConfig::getUseEngineMmap() const
+{
+    return mUseEngineMmap;
+}
+
 // setters
 
 void ExecutorConfig::setMaxBeamWidth(SizeType32 maxBeamWidth)
@@ -380,6 +386,11 @@ void ExecutorConfig::setEnableTrtOverlap(bool enableTrtOverlap)
 void ExecutorConfig::setFailFastOnAttentionWindowTooLarge(bool failFastOnAttentionWindowTooLarge)
 {
     mFailFastOnAttentionWindowTooLarge = failFastOnAttentionWindowTooLarge;
+}
+
+void ExecutorConfig::setUseEngineMmap(bool useEngineMmap)
+{
+    mUseEngineMmap = useEngineMmap;
 }
 
 } // namespace tensorrt_llm::executor

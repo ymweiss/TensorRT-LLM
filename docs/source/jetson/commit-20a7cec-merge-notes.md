@@ -15,7 +15,7 @@ Nothing in these paths requires **CUDA 13** as a minimum: `sm_87` has been suppo
 
 | Area | Resolution |
 |------|------------|
-| `cpp/include/tensorrt_llm/executor/executor.h` | Kept current `main` Executor API (`BufferView`, optional managed weights). Dropped legacy Jetson `useMMap` constructors (no matching `impl` on `main` without further API work). |
+| `cpp/include/tensorrt_llm/executor/executor.h` | Kept current `main` Executor API (`BufferView`, optional managed weights). **Added** `ExecutorConfig::use_engine_mmap` / `getUseEngineMmap()` (Jetson mmap load path); dropped legacy Jetson-only `Executor` constructors that took mmap at the `Executor` level. |
 | `cpp/tensorrt_llm/nanobind/executor/executor.h` | Kept nanobind `Executor` bindings (Jetson branch targeted removed `pybind`). |
 | `cpp/tensorrt_llm/pybind/executor/executor.cpp` | **Removed** — `pybind` executor was deleted on `main`; nanobind replaces it. |
 | `tensorrt_llm/auto_parallel/cluster_info.py` | **Removed** — file was deleted on `main`; Jetson edits were not ported. |
@@ -29,9 +29,9 @@ Nothing in these paths requires **CUDA 13** as a minimum: `sm_87` has been suppo
 | `tllmRuntime.cpp` | Merged **GDS**, **mmap** (`RawEngine::useMMap()`), and **StreamReader** paths; POSIX mmap implementation is **Windows-stubbed**. |
 | `cpp/include/tensorrt_llm/runtime/rawEngine.h` | Kept constructor + `useMMap()` from cherry-pick (already aligned with `main` merge). |
 | `setup.py` / `scripts/build_wheel.py` | Kept `main` constraints + venv flow; **select `requirements-jetson.txt` / `requirements-dev-jetson.txt`** when `tegra` + `aarch64`. |
-| `tensorrt_llm/profiler.py` | Merged NVML v2 default with Jetson **legacy** path when driver/pynvml is too old. |
-| `examples/run.py`, `summarize.py` | Kept `main` behavior; dropped incomplete Python `use_mmap` wiring (see below). |
-| `tensorrt_llm/runtime/model_runner_cpp.py` | Kept `main` `Executor` construction; dropped `use_mmap` argument (no Python binding yet). |
+| `tensorrt_llm/profiler.py` | NVML v2 default; **on Jetson**, skip NVML-based device memory in `device_memory_info` (returns zeros + one-time warning) when pynvml/driver is unsuitable. |
+| `examples/run.py`, `summarize.py` | **`--use_mmap`** → `ModelRunnerCpp.from_dir`; **`summarize.py`** skips `mpi_broadcast` on Tegra aarch64 (single-process Jetson). |
+| `tensorrt_llm/runtime/model_runner_cpp.py` | **`use_mmap`** sets `trtllm_config.use_engine_mmap` for C++ engine load. |
 
 ## Manual follow-up (recommended)
 
@@ -41,10 +41,7 @@ Nothing in these paths requires **CUDA 13** as a minimum: `sm_87` has been suppo
 2. **XQA meta table (`xqa_kernel_cubin.cpp`)**  
    On `main`, `xqa_kernel_cubin.cpp` is a large generated/LFS artifact. Adding `87` to `cpp/kernels/xqa/gen_cubins.py` is done; **re-run** the XQA cubin generator and merge the updated `xqa_kernel_cubin.cpp` so `sXqaKernelMetaInfo` includes the new `*_sm_87` translation units.
 
-3. **Python mmap engine load**  
-   C++ supports `RawEngine(path, useMMap)` and `TllmRuntime` mmap load on Linux. **Python** still constructs `Executor` without exposing mmap; to expose `--use_mmap` again, add a supported field (e.g. on `ExecutorConfig`) and plumb through `Executor::Impl::loadModel` → `RawEngine`, then restore CLI flags.
-
-4. **Static import libraries for L4T**  
+3. **Static import libraries for L4T**  
    The cherry-pick adds `aarch64-l4t-gnu/*.a` (LFS). Confirm they match your TensorRT / JetPack version and CI policy.
 
 ## Reference

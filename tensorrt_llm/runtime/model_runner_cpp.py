@@ -129,6 +129,7 @@ class ModelRunnerCpp(ModelRunnerMixin):
         mm_embedding_offloading: bool = False,
         fail_fast_on_attention_window_too_large: bool = False,
         normalize_log_probs: bool = False,
+        use_mmap: bool = False,
     ) -> 'ModelRunnerCpp':
         """
         Create a ModelRunnerCpp instance from an engine directory.
@@ -411,6 +412,7 @@ class ModelRunnerCpp(ModelRunnerMixin):
         trtllm_config.extended_runtime_perf_knob_config = extended_runtime_perf_knob_config
         trtllm_config.mm_embedding_offloading = mm_embedding_offloading
         trtllm_config.fail_fast_on_attention_window_too_large = fail_fast_on_attention_window_too_large
+        trtllm_config.use_engine_mmap = use_mmap
         if is_orchestrator_mode:
             communication_mode = trtllm.CommunicationMode.ORCHESTRATOR
             path = str(Path(__file__).parent.parent / 'bin' / 'executorWorker')

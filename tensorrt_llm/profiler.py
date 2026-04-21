@@ -122,23 +122,17 @@ class PyNVMLContext:
 
 
 on_jetson_l4t = "tegra" in platform.release() and platform.machine() == "aarch64"
-if pynvml is not None:
+if pynvml is not None and not on_jetson_l4t:
     with PyNVMLContext():
-        if on_jetson_l4t:
-            driver_version = pynvml.nvmlSystemGetDriverVersion()
-            if pynvml.__version__ < "11.5.0" or driver_version < "526":
-                logger.warning(
-                    "Found pynvml==%s and cuda driver version %s. Please use pynvml>=11.5.0 and "
-                    "cuda driver>=526 to get accurate memory usage.",
-                    pynvml.__version__,
-                    driver_version,
-                )
-                _device_get_memory_info_fn = pynvml.nvmlDeviceGetMemoryInfo
-            else:
-                _device_get_memory_info_fn = partial(
-                    pynvml.nvmlDeviceGetMemoryInfo,
-                    version=pynvml.nvmlMemory_v2,
-                )
+        driver_version = pynvml.nvmlSystemGetDriverVersion()
+        if pynvml.__version__ < "11.5.0" or driver_version < "526":
+            logger.warning(
+                "Found pynvml==%s and cuda driver version %s. Please use pynvml>=11.5.0 and "
+                "cuda driver>=526 to get accurate memory usage.",
+                pynvml.__version__,
+                driver_version,
+            )
+            _device_get_memory_info_fn = pynvml.nvmlDeviceGetMemoryInfo
         else:
             _device_get_memory_info_fn = partial(
                 pynvml.nvmlDeviceGetMemoryInfo,
@@ -161,6 +155,14 @@ def host_memory_info(pid: Optional[int] = None) -> Tuple[int, int, int]:
 
 
 def device_memory_info(device: Optional[Union[torch.device, int]] = None) -> Tuple[int, int, int]:
+    if on_jetson_l4t:
+        if not getattr(device_memory_info, "_has_logged_jetson_warning", False):
+            logger.warning(
+                "Device memory monitoring is not fully supported on Jetson/Tegra. Reporting 0 usage."
+            )
+            device_memory_info._has_logged_jetson_warning = True
+        return 0, 0, 0
+
     if pynvml is not None:
         if device is None:
             device = torch.cuda.current_device()

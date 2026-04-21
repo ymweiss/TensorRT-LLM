@@ -1546,7 +1546,7 @@ public:
         std::optional<std::vector<AdditionalModelOutput>> additionalModelOutputs = std::nullopt,
         std::optional<CacheTransceiverConfig> cacheTransceiverConfig = std::nullopt,
         bool gatherGenerationLogits = false, bool promptTableOffloading = false, bool enableTrtOverlap = false,
-        bool failFastOnAttentionWindowTooLarge = false);
+        bool failFastOnAttentionWindowTooLarge = false, bool useEngineMmap = false);
 
     [[nodiscard]] SizeType32 getMaxBeamWidth() const;
     [[nodiscard]] SchedulerConfig getSchedulerConfig() const;
@@ -1582,6 +1582,8 @@ public:
     [[nodiscard]] std::optional<CacheTransceiverConfig> getCacheTransceiverConfig() const;
     [[nodiscard]] bool getEnableTrtOverlap() const;
     [[nodiscard]] bool getFailFastOnAttentionWindowTooLarge() const;
+    /// @brief When true, load TensorRT engines from disk with mmap (Linux) to reduce CPU memory spikes (e.g. Jetson).
+    [[nodiscard]] bool getUseEngineMmap() const;
 
     void setMaxBeamWidth(SizeType32 maxBeamWidth);
     void setMaxBatchSize(SizeType32 maxBatchSize);
@@ -1612,6 +1614,7 @@ public:
     void setCacheTransceiverConfig(CacheTransceiverConfig const& cacheTransceiverConfig);
     void setEnableTrtOverlap(bool enableTrtOverlap);
     void setFailFastOnAttentionWindowTooLarge(bool failFastOnAttentionWindowTooLarge);
+    void setUseEngineMmap(bool useEngineMmap);
 
 private:
     friend class Serialization;
@@ -1702,6 +1705,9 @@ private:
     /// @brief Controls whether to fail fast when attention window is too large to fit even a single sequence in the KV
     /// cache.
     bool mFailFastOnAttentionWindowTooLarge{false};
+
+    /// @brief When true, mmap engine files instead of read+deserialize from a full host buffer (Linux).
+    bool mUseEngineMmap{false};
 };
 
 struct KVCacheCreatedData

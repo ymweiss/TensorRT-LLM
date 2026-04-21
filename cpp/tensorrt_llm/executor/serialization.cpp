@@ -1170,13 +1170,14 @@ ExecutorConfig Serialization::deserializeExecutorConfig(std::istream& is)
         = su::deserializeWithGetterType<decltype(&ExecutorConfig::getGatherGenerationLogits)>(is);
     auto promptTableOffloading = su::deserializeWithGetterType<decltype(&ExecutorConfig::getPromptTableOffloading)>(is);
     auto enableTrtOverlap = su::deserializeWithGetterType<decltype(&ExecutorConfig::getEnableTrtOverlap)>(is);
+    auto useEngineMmap = su::deserialize<bool>(is);
 
     return ExecutorConfig{maxBeamWidth, schedulerConfig, kvCacheConfig, enableChunkedContext, normalizeLogProbs,
         iterStatsMaxIterations, requestStatsMaxIterations, batchingType, maxBatchSize, maxNumTokens, parallelConfig,
         peftCacheConfig, std::nullopt, decodingConfig, useGpuDirectStorage, gpuWeightsPercent, maxQueueSize,
         extendedRuntimePerfKnobConfig, debugConfig, recvPollPeriodMs, maxSeqIdleMicroseconds, specDecConfig,
         guidedDecodingConfig, additionalModelOutputs, cacheTransceiverConfig, gatherGenerationLogits,
-        promptTableOffloading, enableTrtOverlap};
+        promptTableOffloading, enableTrtOverlap, false, useEngineMmap};
 }
 
 size_t Serialization::serializedSize(ExecutorConfig const& executorConfig)
@@ -1213,6 +1214,7 @@ size_t Serialization::serializedSize(ExecutorConfig const& executorConfig)
     totalSize += su::serializedSize(executorConfig.getGatherGenerationLogits());
     totalSize += su::serializedSize(executorConfig.getPromptTableOffloading());
     totalSize += su::serializedSize(executorConfig.getEnableTrtOverlap());
+    totalSize += su::serializedSize(executorConfig.getUseEngineMmap());
 
     return totalSize;
 }
@@ -1249,6 +1251,7 @@ void Serialization::serialize(ExecutorConfig const& executorConfig, std::ostream
     su::serialize(executorConfig.getGatherGenerationLogits(), os);
     su::serialize(executorConfig.getPromptTableOffloading(), os);
     su::serialize(executorConfig.getEnableTrtOverlap(), os);
+    su::serialize(executorConfig.getUseEngineMmap(), os);
 }
 
 // KvCacheConfig

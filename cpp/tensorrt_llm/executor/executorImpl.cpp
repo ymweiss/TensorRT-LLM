@@ -256,7 +256,8 @@ void Executor::Impl::loadModel(std::optional<std::filesystem::path> const& model
         "Either engine path or deserialized engine buffer should be given to load the model properly.");
     auto rawEngine = engineBufferOpt.has_value()
         ? runtime::RawEngine(engineBufferOpt.value().data(), engineBufferOpt.value().size())
-        : runtime::RawEngine(modelPathOpt.value() / jsonConfig.engineFilename(worldConfig));
+        : runtime::RawEngine(modelPathOpt.value() / jsonConfig.engineFilename(worldConfig),
+            executorConfig.getUseEngineMmap());
 
     if (rawEngine.getType() != tensorrt_llm::runtime::RawEngine::FilePath)
     {
